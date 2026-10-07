@@ -290,7 +290,7 @@ describe('zahtevi za iznajmljivanje', () => {
       token: marko, body: { grad: 'Beograd', konzolaId: 1, brojDana: 1, ocekivanaCenaPoDanu: '1500' },
     });
     assert.equal(kaoString.status, 201);
-    for (const ocekivanaCenaPoDanu of ['', 'abc', true, 1500.5, [1500]]) {
+    for (const ocekivanaCenaPoDanu of ['', 'abc', true, 1500.5, [1500], 0, '0', -5, '-5', 2_000_000]) {
       const res = await s.call('POST', '/api/zahtevi', {
         token: marko, body: { grad: 'Beograd', konzolaId: 1, brojDana: 1, ocekivanaCenaPoDanu },
       });

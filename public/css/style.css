@@ -180,7 +180,7 @@ input[readonly] {
   align-items: start;
 }
 
-@media (min-width: 601px) {
+@media (min-width: 700px) {
   .rent-form { grid-template-columns: 1fr 1fr; }
 }
 
@@ -339,7 +339,7 @@ th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
 [hidden] { display: none !important; }
 
 /* Na telefonu i tabletu je svaki zahtev kartica: "naziv kolone: vrednost" u svakom redu. */
-@media (max-width: 959px) {
+@media (max-width: 999px) {
   .table-cards thead { display: none; }
 
   .table-cards tr {
@@ -371,7 +371,19 @@ th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
   .topbar { padding: 12px 16px; }
   .card { padding: 16px; }
 
-  .price-list th, .price-list td { padding: 8px 6px; }
-  .price-list th { white-space: normal; }
-  .price-list input { max-width: 110px; }
+  /* Cenovnik: naziv konzole u jednom redu, ispod njega polje za cenu i dugme. */
+  .price-list thead { display: none; }
+
+  .price-list tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .price-list td { padding: 0; border: 0; }
+  .price-list td:first-child { grid-column: 1 / -1; font-weight: 600; }
+  .price-list input { max-width: none; }
 }

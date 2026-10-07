@@ -124,7 +124,7 @@ function createApp({ db, sessions = new SessionStore() }) {
     // poslao zahtev po ceni koju nije video.
     if (ocekivanaCenaPoDanu != null) {
       const ocekivana = toInteger(ocekivanaCenaPoDanu);
-      if (Number.isNaN(ocekivana)) {
+      if (!Number.isInteger(ocekivana) || ocekivana < 1 || ocekivana > MAX_CENA_PO_DANU) {
         return res.status(400).json({ greska: 'Neispravna očekivana cena po danu.' });
       }
       if (ocekivana !== konzola.cenaPoDanu) {

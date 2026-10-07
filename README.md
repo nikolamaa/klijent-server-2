@@ -32,6 +32,18 @@ Zatim otvorite <http://localhost:3000>.
 Savet: prijava se pamti po tabu pretraživača, pa u jednom tabu možete biti prijavljeni
 kao klijent, a u drugom kao admin.
 
+### Testiranje na telefonu
+
+1. Računar i telefon moraju biti na istoj Wi-Fi mreži.
+2. Pokrenite server na računaru (`npm start`). U konzoli će pisati adresa za telefon, npr.
+   `Sa telefona (ista Wi-Fi mreža): http://192.168.1.15:3000`.
+3. Otvorite tu adresu u pretraživaču na telefonu.
+
+Ako se stranica ne otvara, verovatno je blokira firewall na računaru. Na Windows-u pri prvom
+pokretanju dozvolite Node.js-u pristup na „Private networks”, ili dozvolite port 3000 u
+Windows Defender Firewall-u. Neke javne i školske mreže ne dozvoljavaju uređajima da se međusobno vide;
+tada probajte sa hotspot-a telefona (računar se poveže na hotspot, pa važi isto uputstvo).
+
 Podešavanja preko promenljivih okruženja:
 
 - `PORT` — port servera (podrazumevano `3000`)

@@ -122,11 +122,17 @@ function createApp({ db, sessions = new SessionStore() }) {
     // Klijent šalje cenu po danu koju je video u formi. Ako je admin u
     // međuvremenu promenio cenovnik, zahtev se odbija da klijent ne bi
     // poslao zahtev po ceni koju nije video.
-    if (ocekivanaCenaPoDanu !== undefined && toInteger(ocekivanaCenaPoDanu) !== konzola.cenaPoDanu) {
-      return res.status(409).json({
-        greska: `Cena za ${konzola.naziv} je u međuvremenu promenjena na `
-          + `${formatDinara(konzola.cenaPoDanu)} din po danu. Proverite novu cenu i pošaljite zahtev ponovo.`,
-      });
+    if (ocekivanaCenaPoDanu != null) {
+      const ocekivana = toInteger(ocekivanaCenaPoDanu);
+      if (Number.isNaN(ocekivana)) {
+        return res.status(400).json({ greska: 'Neispravna očekivana cena po danu.' });
+      }
+      if (ocekivana !== konzola.cenaPoDanu) {
+        return res.status(409).json({
+          greska: `Cena za ${konzola.naziv} je u međuvremenu promenjena na `
+            + `${formatDinara(konzola.cenaPoDanu)} din po danu. Proverite novu cenu i pošaljite zahtev ponovo.`,
+        });
+      }
     }
 
     // Cenu uvek računa server na osnovu izabrane konzole; cena poslata sa

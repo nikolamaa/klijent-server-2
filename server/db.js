@@ -18,14 +18,21 @@ class Database {
   }
 
   static #read(filePath) {
+    const savet = 'Ispravite fajl ili ga obrišite da bi se napravila nova baza.';
+    let data;
     try {
-      return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
     } catch (err) {
-      throw new Error(
-        `Baza ${filePath} nije ispravan JSON (${err.message}). `
-        + 'Ispravite fajl ili ga obrišite da bi se napravila nova baza.',
-      );
+      if (err instanceof SyntaxError) {
+        throw new Error(`Baza ${filePath} nije ispravan JSON (${err.message}). ${savet}`);
+      }
+      throw new Error(`Baza ${filePath} ne može da se pročita (${err.message}).`);
     }
+    const kolekcije = ['korisnici', 'konzole', 'gradovi', 'zahtevi'];
+    if (!kolekcije.every((k) => Array.isArray(data?.[k])) || !Number.isInteger(data.sledeciId?.zahtevi)) {
+      throw new Error(`Baza ${filePath} nema očekivanu strukturu. ${savet}`);
+    }
+    return data;
   }
 
   // --- korisnici ---

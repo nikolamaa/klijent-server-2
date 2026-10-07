@@ -73,17 +73,30 @@
     updatePrice();
   }
 
-  // Admin može da promeni cenovnik, pa ga povremeno osvežavamo.
+  // Admin može da promeni cenovnik, pa ga povremeno osvežavamo. Ako se promeni
+  // cena konzole koja je izabrana u formi, korisnik dobija vidljivo obaveštenje.
   async function loadConsoles() {
     const nove = await Api.get('/api/konzole');
     if (JSON.stringify(nove) === JSON.stringify(konzole)) return;
+    const stara = selectedConsole();
     konzole = nove;
     renderConsoles();
+    const nova = selectedConsole();
+    if (stara && nova && stara.cenaPoDanu !== nova.cenaPoDanu) {
+      showMessage(rentError,
+        `Cena za ${nova.naziv} je promenjena sa ${Format.cena(stara.cenaPoDanu)} `
+        + `na ${Format.cena(nova.cenaPoDanu)} po danu. Proverite novu cenu pre slanja.`);
+    }
   }
 
   async function loadCities() {
     const gradovi = await Api.get('/api/gradovi');
-    gradSelect.append(...gradovi.map((grad) => el('option', { value: grad }, grad)));
+    const izabran = gradSelect.value;
+    gradSelect.replaceChildren(
+      el('option', { value: '' }, '— izaberite grad —'),
+      ...gradovi.map((grad) => el('option', { value: grad }, grad)),
+    );
+    gradSelect.value = izabran;
   }
 
   function renderRequests(zahtevi) {

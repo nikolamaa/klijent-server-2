@@ -59,6 +59,10 @@
   }
 
   function renderRequests() {
+    // Pamtimo dugme u fokusu da bi tastatura ostala na istom mestu posle osvežavanja.
+    const fokus = tbody.contains(document.activeElement)
+      ? document.activeElement.getAttribute('aria-label')
+      : null;
     const prikazani = aktivniFilter ? zahtevi.filter((z) => z.status === aktivniFilter) : zahtevi;
     tbody.replaceChildren(...prikazani.map((z) => el('tr', {},
       el('td', { 'data-label': '#' }, z.id),
@@ -75,6 +79,7 @@
     )));
     emptyNote.hidden = prikazani.length > 0;
     renderCounts();
+    if (fokus) tbody.querySelector(`[aria-label="${CSS.escape(fokus)}"]`)?.focus();
   }
 
   // Tabela se ponovo iscrtava samo kada se podaci promene, da se ne izgubi
@@ -101,6 +106,9 @@
       setMessage(actionMessage, err.message, 'error');
     }
     odlukaUToku = false;
+    // Sledeće uspešno osvežavanje mora ponovo da iscrta (i otključa) dugmad,
+    // čak i ako ovo ne uspe a podaci se nisu promenili.
+    poslednjiOdgovor = '';
     await refresh({ force: true });
     actionMessage.focus();
   }

@@ -281,6 +281,23 @@ describe('zahtevi za iznajmljivanje', () => {
     assert.equal(nova.body.cena, 4000);
   });
 
+  it('očekivana cena: null se tretira kao da nije poslata, neispravna vrednost je 400', async () => {
+    const bezCene = await s.call('POST', '/api/zahtevi', {
+      token: marko, body: { grad: 'Beograd', konzolaId: 1, brojDana: 1, ocekivanaCenaPoDanu: null },
+    });
+    assert.equal(bezCene.status, 201);
+    const kaoString = await s.call('POST', '/api/zahtevi', {
+      token: marko, body: { grad: 'Beograd', konzolaId: 1, brojDana: 1, ocekivanaCenaPoDanu: '1500' },
+    });
+    assert.equal(kaoString.status, 201);
+    for (const ocekivanaCenaPoDanu of ['', 'abc', true, 1500.5, [1500]]) {
+      const res = await s.call('POST', '/api/zahtevi', {
+        token: marko, body: { grad: 'Beograd', konzolaId: 1, brojDana: 1, ocekivanaCenaPoDanu },
+      });
+      assert.equal(res.status, 400, JSON.stringify(ocekivanaCenaPoDanu));
+    }
+  });
+
   it('validira izmenu cene', async () => {
     for (const cenaPoDanu of [0, -5, 1.5, 'abc', null, 2_000_000]) {
       const res = await s.call('PUT', '/api/admin/konzole/1', { token: admin, body: { cenaPoDanu } });
@@ -342,5 +359,18 @@ describe('baza u fajlu', () => {
   it('oštećen fajl baze daje jasnu poruku', () => {
     fs.writeFileSync(file, '{"korisnici": [');
     assert.throws(() => new Database(file), /nije ispravan JSON.*obrišite/);
+    for (const sadrzaj of ['{}', 'null', '[]', '{"korisnici":[],"konzole":[],"gradovi":[],"zahtevi":[]}']) {
+      fs.writeFileSync(file, sadrzaj);
+      assert.throws(() => new Database(file), /nema očekivanu strukturu/, sadrzaj);
+    }
+  });
+
+  it('greška čitanja fajla ne savetuje brisanje baze', () => {
+    fs.mkdirSync(file);
+    assert.throws(() => new Database(file), (err) => {
+      assert.match(err.message, /ne može da se pročita/);
+      assert.doesNotMatch(err.message, /obrišite/);
+      return true;
+    });
   });
 });

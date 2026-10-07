@@ -175,9 +175,18 @@ input[readonly] {
 
 .rent-form {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: 1fr;
   gap: 16px;
   align-items: start;
+}
+
+@media (min-width: 601px) {
+  .rent-form { grid-template-columns: 1fr 1fr; }
+}
+
+/* Tip konzole dobija najviše mesta, da se vidi i cena po danu u listi. */
+@media (min-width: 960px) {
+  .rent-form { grid-template-columns: 0.9fr 1.8fr 0.6fr 0.9fr; }
 }
 
 .rent-form .message,
@@ -329,20 +338,17 @@ th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
 
 [hidden] { display: none !important; }
 
-@media (max-width: 600px) {
-  .topbar { padding: 12px 16px; }
-  .card { padding: 16px; }
+/* Na telefonu i tabletu je svaki zahtev kartica: "naziv kolone: vrednost" u svakom redu. */
+@media (max-width: 959px) {
+  .table-cards thead { display: none; }
 
-  /* Na telefonu je svaki zahtev kartica: "naziv kolone: vrednost" u svakom redu. */
-  .stack-on-mobile thead { display: none; }
-
-  .stack-on-mobile tr {
+  .table-cards tr {
     display: block;
     padding: 8px 0;
     border-bottom: 1px solid var(--border);
   }
 
-  .stack-on-mobile td {
+  .table-cards td {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -352,14 +358,20 @@ th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
     text-align: right;
   }
 
-  .stack-on-mobile td::before {
+  .table-cards td::before {
     content: attr(data-label);
     font-weight: 600;
     font-size: 0.8rem;
     color: var(--muted);
     text-align: left;
   }
+}
+
+@media (max-width: 600px) {
+  .topbar { padding: 12px 16px; }
+  .card { padding: 16px; }
 
   .price-list th, .price-list td { padding: 8px 6px; }
+  .price-list th { white-space: normal; }
   .price-list input { max-width: 110px; }
 }

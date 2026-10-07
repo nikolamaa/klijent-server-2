@@ -5,6 +5,8 @@
   const errorBox = document.getElementById('login-error');
   const submit = form.querySelector('button[type="submit"]');
 
+  showMessage(errorBox, Api.takeLoginMessage() ?? '');
+
   // Ako je korisnik već prijavljen u ovom tabu, šaljemo ga direktno na njegovu stranicu.
   if (Api.getToken()) {
     Api.get('/api/korisnik')

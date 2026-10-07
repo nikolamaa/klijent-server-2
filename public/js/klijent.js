@@ -20,15 +20,19 @@
 
   let konzole = [];
 
+  // Dok stranica nije učitana, forma ne sme da se pošalje kao obična HTML forma.
+  form.addEventListener('submit', (event) => event.preventDefault());
+  submitButton.disabled = true;
+
   let korisnik;
   try {
     korisnik = await Api.requireRole('klijent');
   } catch (err) {
-    showMessage(pageError, err.message);
+    showMessage(pageError, `${err.message} Osvežite stranicu kada server bude dostupan.`);
     return;
   }
   if (!korisnik) return;
-  setupHeader(korisnik);
+  showUserName(korisnik);
 
   function selectedConsole() {
     return konzole.find((k) => String(k.id) === konzolaSelect.value) ?? null;
@@ -52,8 +56,9 @@
       cenaInput.value = '—';
       cenaDetalji.textContent = `${Format.cena(konzola.cenaPoDanu)} po danu — unesite broj dana od ${MIN_DANA} do ${MAX_DANA}.`;
     } else {
-      cenaInput.value = Format.cena(konzola.cenaPoDanu * dana);
-      cenaDetalji.textContent = `${Format.cena(konzola.cenaPoDanu)} po danu × ${Format.dana(dana)}`;
+      const ukupno = konzola.cenaPoDanu * dana;
+      cenaInput.value = Format.cena(ukupno);
+      cenaDetalji.textContent = `${Format.cena(konzola.cenaPoDanu)} po danu × ${Format.dana(dana)} = ${Format.cena(ukupno)}`;
     }
   }
 
@@ -62,7 +67,7 @@
     konzolaSelect.replaceChildren(
       el('option', { value: '' }, '— izaberite konzolu —'),
       ...konzole.map((k) =>
-        el('option', { value: k.id }, `${k.naziv} (${Format.cena(k.cenaPoDanu)} / dan)`)),
+        el('option', { value: k.id }, `${k.naziv} — ${Format.cena(k.cenaPoDanu)}/dan`)),
     );
     konzolaSelect.value = izabrana;
     updatePrice();
@@ -83,13 +88,13 @@
 
   function renderRequests(zahtevi) {
     tbody.replaceChildren(...zahtevi.map((z) => el('tr', {},
-      el('td', {}, z.id),
-      el('td', {}, z.grad),
-      el('td', {}, z.nazivKonzole),
-      el('td', {}, Format.dana(z.brojDana)),
-      el('td', { class: 'num' }, Format.cena(z.cena)),
-      el('td', {}, Format.datum(z.kreiran)),
-      el('td', {}, statusBadge(z.status)),
+      el('td', { 'data-label': '#' }, z.id),
+      el('td', { 'data-label': 'Grad' }, z.grad),
+      el('td', { 'data-label': 'Konzola' }, z.nazivKonzole),
+      el('td', { 'data-label': 'Broj dana' }, Format.dana(z.brojDana)),
+      el('td', { 'data-label': 'Cena', class: 'num' }, Format.cena(z.cena)),
+      el('td', { 'data-label': 'Poslat' }, Format.datum(z.kreiran)),
+      el('td', { 'data-label': 'Status' }, statusBadge(z.status)),
     )));
     emptyNote.hidden = zahtevi.length > 0;
   }
@@ -100,7 +105,12 @@
 
   async function refresh() {
     try {
-      await Promise.all([loadRequests(), loadConsoles()]);
+      await Promise.all([
+        loadRequests(),
+        loadConsoles(),
+        // Ako gradovi nisu učitani pri otvaranju stranice, pokušavamo ponovo.
+        gradSelect.options.length <= 1 ? loadCities() : null,
+      ]);
       showMessage(pageError, '');
     } catch (err) {
       showMessage(pageError, err.message);
@@ -120,8 +130,7 @@
   daniInput.addEventListener('input', updatePrice);
   document.getElementById('refresh').addEventListener('click', refresh);
 
-  form.addEventListener('submit', async (event) => {
-    event.preventDefault();
+  form.addEventListener('submit', async () => {
     showMessage(rentError, '');
     showMessage(rentSuccess, '');
 
@@ -138,6 +147,8 @@
         grad: gradSelect.value,
         konzolaId: Number(konzolaSelect.value),
         brojDana: readDays(),
+        // Server odbija zahtev (409) ako se cena promenila od kada je prikazana.
+        ocekivanaCenaPoDanu: selectedConsole().cenaPoDanu,
       });
       form.reset();
       updatePrice();
@@ -150,6 +161,7 @@
     } finally {
       submitButton.disabled = false;
     }
+    // Osvežava i cenovnik, pa posle odbijanja zbog promenjene cene forma prikazuje novu cenu.
     await refresh();
   });
 
@@ -158,5 +170,6 @@
   } catch (err) {
     showMessage(pageError, err.message);
   }
+  submitButton.disabled = false;
   setInterval(refresh, OSVEZAVANJE_MS);
 })();

@@ -39,10 +39,10 @@
         </button>
       </div>
 
-      <p id="action-message" class="message" role="status" hidden></p>
+      <p id="action-message" class="message" role="status" tabindex="-1" hidden></p>
 
       <div class="table-wrap">
-        <table>
+        <table class="stack-on-mobile">
           <thead>
             <tr>
               <th>#</th>
@@ -50,7 +50,7 @@
               <th>Grad</th>
               <th>Konzola</th>
               <th>Broj dana</th>
-              <th>Cena</th>
+              <th class="num">Cena</th>
               <th>Poslat</th>
               <th>Status</th>
               <th>Akcije</th>
@@ -66,7 +66,7 @@
       <h2>Cenovnik konzola</h2>
       <p class="muted">Cena po danu se primenjuje na nove zahteve. Već poslati zahtevi zadržavaju cenu iz trenutka slanja.</p>
       <div class="table-wrap">
-        <table>
+        <table class="price-list">
           <thead>
             <tr>
               <th>Konzola</th>

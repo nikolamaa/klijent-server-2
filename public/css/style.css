@@ -143,7 +143,8 @@ h2 { font-size: 1.15rem; }
 
 /* ---------- forms ---------- */
 
-label {
+label,
+.field {
   display: grid;
   gap: 6px;
   font-weight: 600;
@@ -154,6 +155,7 @@ input, select {
   width: 100%;
   padding: 9px 11px;
   font: inherit;
+  font-size: 16px; /* manje od 16px izaziva zumiranje na iOS-u */
   font-weight: 400;
   color: var(--text);
   background: var(--surface);
@@ -215,13 +217,16 @@ button.secondary {
 
 button.secondary:hover:not(:disabled) { background: var(--bg); }
 
-button.approve { background: var(--success); color: var(--surface); }
-button.reject { background: var(--danger); color: var(--surface); }
+button.approve,
+button.approve:hover:not(:disabled) { background: var(--success); color: var(--surface); }
+button.reject,
+button.reject:hover:not(:disabled) { background: var(--danger); color: var(--surface); }
 button.approve:hover:not(:disabled),
 button.reject:hover:not(:disabled) { filter: brightness(1.1); }
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -255,11 +260,14 @@ button.reject:hover:not(:disabled) { filter: brightness(1.1); }
 
 .filter:hover:not(:disabled) { background: var(--bg); }
 
-.filter[aria-pressed="true"] {
+.filter[aria-pressed="true"],
+.filter[aria-pressed="true"]:hover:not(:disabled) {
   background: var(--primary);
   color: var(--primary-text);
   border-color: var(--primary);
 }
+
+.filter[aria-pressed="true"]:hover:not(:disabled) { background: var(--primary-hover); }
 
 .count {
   display: inline-block;
@@ -289,6 +297,10 @@ th, td {
   padding: 10px 12px;
   text-align: left;
   border-bottom: 1px solid var(--border);
+}
+
+/* Brojevi, statusi i datumi ostaju u jednom redu; tekst (npr. ime klijenta) sme da se prelomi. */
+th, td.num, .badge, td[data-label="Poslat"], td[data-label="Broj dana"] {
   white-space: nowrap;
 }
 
@@ -299,9 +311,9 @@ th {
   color: var(--muted);
 }
 
-td.num { text-align: right; font-variant-numeric: tabular-nums; }
+th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
 
-#konzole-body input { max-width: 160px; }
+.price-list input { max-width: 160px; }
 
 .badge {
   display: inline-block;
@@ -320,4 +332,34 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 @media (max-width: 600px) {
   .topbar { padding: 12px 16px; }
   .card { padding: 16px; }
+
+  /* Na telefonu je svaki zahtev kartica: "naziv kolone: vrednost" u svakom redu. */
+  .stack-on-mobile thead { display: none; }
+
+  .stack-on-mobile tr {
+    display: block;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .stack-on-mobile td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 0;
+    border: 0;
+    text-align: right;
+  }
+
+  .stack-on-mobile td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-align: left;
+  }
+
+  .price-list th, .price-list td { padding: 8px 6px; }
+  .price-list input { max-width: 110px; }
 }

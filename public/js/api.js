@@ -3,6 +3,7 @@
 // Zajednički kod za sve stranice: komunikacija sa serverom, sesija i pomoćne funkcije.
 const Api = (() => {
   const TOKEN_KEY = 'token';
+  const MESSAGE_KEY = 'poruka';
 
   class ApiError extends Error {
     constructor(message, status) {
@@ -31,6 +32,17 @@ const Api = (() => {
     return location.pathname === '/' || location.pathname === '/index.html';
   }
 
+  // Poruka koju login stranica prikaže posle preusmeravanja (npr. istekla sesija).
+  function setLoginMessage(text) {
+    sessionStorage.setItem(MESSAGE_KEY, text);
+  }
+
+  function takeLoginMessage() {
+    const text = sessionStorage.getItem(MESSAGE_KEY);
+    sessionStorage.removeItem(MESSAGE_KEY);
+    return text;
+  }
+
   async function request(method, url, body) {
     const headers = {};
     if (body !== undefined) headers['Content-Type'] = 'application/json';
@@ -50,9 +62,13 @@ const Api = (() => {
 
     // Istekla sesija -> brišemo token i vraćamo korisnika na prijavu.
     if (res.status === 401 && url !== '/api/prijava') {
+      const poruka = 'Sesija je istekla. Prijavite se ponovo.';
       clearToken();
-      if (!isLoginPage()) location.replace('/');
-      throw new ApiError('Sesija je istekla. Prijavite se ponovo.', 401);
+      if (!isLoginPage()) {
+        setLoginMessage(poruka);
+        location.replace('/');
+      }
+      throw new ApiError(poruka, 401);
     }
 
     const data = res.status === 204 ? null : await res.json().catch(() => null);
@@ -92,6 +108,7 @@ const Api = (() => {
     saveToken,
     clearToken,
     pageFor,
+    takeLoginMessage,
     requireRole,
     logout,
     get: (url) => request('GET', url),
@@ -121,10 +138,13 @@ const Format = (() => {
 })();
 
 // Pravi DOM element; tekst se uvek postavlja kao textContent (bez innerHTML-a).
+// Atribut sa vrednošću false/null/undefined se izostavlja, a true daje prazan atribut.
 function el(tag, attrs = {}, ...children) {
   const node = document.createElement(tag);
   for (const [key, value] of Object.entries(attrs)) {
-    if (key === 'class') node.className = value;
+    if (value === false || value == null) continue;
+    if (value === true) node.setAttribute(key, '');
+    else if (key === 'class') node.className = value;
     else if (key === 'dataset') Object.assign(node.dataset, value);
     else if (key.startsWith('on')) node.addEventListener(key.slice(2), value);
     else node.setAttribute(key, value);
@@ -146,7 +166,9 @@ function statusBadge(status) {
   return el('span', { class: `badge ${klasa}` }, tekst);
 }
 
-function setupHeader(korisnik) {
+// Dugme za odjavu radi i kada server nije dostupan (briše lokalnu sesiju).
+document.getElementById('logout')?.addEventListener('click', Api.logout);
+
+function showUserName(korisnik) {
   document.getElementById('user-name').textContent = korisnik.imePrezime;
-  document.getElementById('logout').addEventListener('click', Api.logout);
 }

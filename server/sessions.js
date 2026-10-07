@@ -4,7 +4,7 @@ const crypto = require('node:crypto');
 
 const DEFAULT_TTL_MS = 8 * 60 * 60 * 1000; // 8 sati
 
-// Sessions live in memory: restarting the server logs everyone out.
+// Sesije se čuvaju u memoriji: restart servera odjavljuje sve korisnike.
 class SessionStore {
   constructor({ ttlMs = DEFAULT_TTL_MS, now = Date.now } = {}) {
     this.ttlMs = ttlMs;

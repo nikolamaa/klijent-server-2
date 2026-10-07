@@ -10,10 +10,21 @@ class Database {
   constructor(filePath = null) {
     this.filePath = filePath;
     if (filePath && fs.existsSync(filePath)) {
-      this.data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      this.data = Database.#read(filePath);
     } else {
       this.data = createSeedData();
       this.#save();
+    }
+  }
+
+  static #read(filePath) {
+    try {
+      return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    } catch (err) {
+      throw new Error(
+        `Baza ${filePath} nije ispravan JSON (${err.message}). `
+        + 'Ispravite fajl ili ga obrišite da bi se napravila nova baza.',
+      );
     }
   }
 
@@ -44,20 +55,22 @@ class Database {
   }
 
   updateConsolePrice(id, cenaPoDanu) {
-    const konzola = this.data.konzole.find((k) => k.id === id);
-    if (!konzola) return null;
-    konzola.cenaPoDanu = cenaPoDanu;
-    this.#save();
-    return { ...konzola };
+    return this.#commit((data) => {
+      const konzola = data.konzole.find((k) => k.id === id);
+      if (!konzola) return null;
+      konzola.cenaPoDanu = cenaPoDanu;
+      return { ...konzola };
+    });
   }
 
   // --- zahtevi za iznajmljivanje ---
 
   createRequest(zahtev) {
-    const novi = { id: this.data.sledeciId.zahtevi++, ...zahtev };
-    this.data.zahtevi.push(novi);
-    this.#save();
-    return { ...novi };
+    return this.#commit((data) => {
+      const novi = { id: data.sledeciId.zahtevi++, ...zahtev };
+      data.zahtevi.push(novi);
+      return { ...novi };
+    });
   }
 
   findRequest(id) {
@@ -75,11 +88,26 @@ class Database {
   }
 
   updateRequest(id, izmene) {
-    const zahtev = this.data.zahtevi.find((z) => z.id === id);
-    if (!zahtev) return null;
-    Object.assign(zahtev, izmene);
-    this.#save();
-    return { ...zahtev };
+    return this.#commit((data) => {
+      const zahtev = data.zahtevi.find((z) => z.id === id);
+      if (!zahtev) return null;
+      Object.assign(zahtev, izmene);
+      return { ...zahtev };
+    });
+  }
+
+  // Izmena se zadržava samo ako je uspešno upisana na disk; u suprotnom se
+  // podaci u memoriji vraćaju na stanje pre izmene.
+  #commit(change) {
+    const backup = structuredClone(this.data);
+    try {
+      const result = change(this.data);
+      this.#save();
+      return result;
+    } catch (err) {
+      this.data = backup;
+      throw err;
+    }
   }
 
   #save() {

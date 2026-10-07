@@ -7,6 +7,7 @@ const { SessionStore } = require('./sessions');
 const { ULOGE, STATUSI, MIN_DANA, MAX_DANA, MAX_CENA_PO_DANU } = require('./constants');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+const formatDinara = new Intl.NumberFormat('sr-RS').format;
 
 // Prihvata ceo broj kao broj (3) ili kao string od cifara ("3"); sve ostalo je NaN.
 function toInteger(value) {
@@ -63,7 +64,7 @@ function createApp({ db, sessions = new SessionStore() }) {
 
   // ---------- prijava / odjava ----------
 
-  api.post('/prijava', (req, res) => {
+  api.post('/prijava', async (req, res) => {
     const { korisnickoIme, lozinka } = req.body ?? {};
     if (typeof korisnickoIme !== 'string' || typeof lozinka !== 'string'
         || !korisnickoIme.trim() || !lozinka) {
@@ -71,8 +72,8 @@ function createApp({ db, sessions = new SessionStore() }) {
     }
     const korisnik = db.findUserByUsername(korisnickoIme.trim());
     const ispravno = korisnik
-      ? verifyPassword(lozinka, korisnik.lozinkaHash)
-      : verifyAgainstDummy(lozinka);
+      ? await verifyPassword(lozinka, korisnik.lozinkaHash)
+      : await verifyAgainstDummy(lozinka);
     if (!ispravno) {
       return res.status(401).json({ greska: 'Pogrešno korisničko ime ili lozinka.' });
     }
@@ -102,7 +103,7 @@ function createApp({ db, sessions = new SessionStore() }) {
   // ---------- klijent: zahtevi za iznajmljivanje ----------
 
   api.post('/zahtevi', requireAuth(ULOGE.KLIJENT), (req, res) => {
-    const { grad, konzolaId, brojDana } = req.body ?? {};
+    const { grad, konzolaId, brojDana, ocekivanaCenaPoDanu } = req.body ?? {};
 
     if (typeof grad !== 'string' || !db.listCities().includes(grad)) {
       return res.status(400).json({ greska: 'Izaberite grad sa liste.' });
@@ -115,6 +116,16 @@ function createApp({ db, sessions = new SessionStore() }) {
     if (!Number.isInteger(dana) || dana < MIN_DANA || dana > MAX_DANA) {
       return res.status(400).json({
         greska: `Broj dana mora biti ceo broj od ${MIN_DANA} do ${MAX_DANA}.`,
+      });
+    }
+
+    // Klijent šalje cenu po danu koju je video u formi. Ako je admin u
+    // međuvremenu promenio cenovnik, zahtev se odbija da klijent ne bi
+    // poslao zahtev po ceni koju nije video.
+    if (ocekivanaCenaPoDanu !== undefined && toInteger(ocekivanaCenaPoDanu) !== konzola.cenaPoDanu) {
+      return res.status(409).json({
+        greska: `Cena za ${konzola.naziv} je u međuvremenu promenjena na `
+          + `${formatDinara(konzola.cenaPoDanu)} din po danu. Proverite novu cenu i pošaljite zahtev ponovo.`,
       });
     }
 

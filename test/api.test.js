@@ -265,6 +265,22 @@ describe('zahtevi za iznajmljivanje', () => {
     assert.equal(stari.cena, 3000);
   });
 
+  it('odbija zahtev ako je cena promenjena posle prikaza u formi (409)', async () => {
+    await s.call('PUT', '/api/admin/konzole/1', { token: admin, body: { cenaPoDanu: 2000 } });
+    const stara = await s.call('POST', '/api/zahtevi', {
+      token: marko, body: { grad: 'Beograd', konzolaId: 1, brojDana: 2, ocekivanaCenaPoDanu: 1500 },
+    });
+    assert.equal(stara.status, 409);
+    assert.match(stara.body.greska, /2\.000 din po danu/);
+    assert.deepEqual((await s.call('GET', '/api/zahtevi', { token: marko })).body, []);
+
+    const nova = await s.call('POST', '/api/zahtevi', {
+      token: marko, body: { grad: 'Beograd', konzolaId: 1, brojDana: 2, ocekivanaCenaPoDanu: 2000 },
+    });
+    assert.equal(nova.status, 201);
+    assert.equal(nova.body.cena, 4000);
+  });
+
   it('validira izmenu cene', async () => {
     for (const cenaPoDanu of [0, -5, 1.5, 'abc', null, 2_000_000]) {
       const res = await s.call('PUT', '/api/admin/konzole/1', { token: admin, body: { cenaPoDanu } });
@@ -275,24 +291,56 @@ describe('zahtevi za iznajmljivanje', () => {
 });
 
 describe('baza u fajlu', () => {
-  it('podaci ostaju sačuvani posle restarta servera', async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'konzole-'));
-    const file = path.join(dir, 'baza.json');
-    try {
-      const prvi = await startServer({ db: new Database(file) });
-      const token = await prvi.login('marko', 'marko123');
-      await prvi.call('POST', '/api/zahtevi', { token, body: { grad: 'Subotica', konzolaId: 4, brojDana: 3 } });
-      prvi.server.close();
+  let dir;
+  let file;
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'konzole-'));
+    file = path.join(dir, 'baza.json');
+  });
+  afterEach(() => fs.rmSync(dir, { recursive: true, force: true }));
 
-      const drugi = await startServer({ db: new Database(file) });
-      const token2 = await drugi.login('marko', 'marko123');
-      const zahtevi = (await drugi.call('GET', '/api/zahtevi', { token: token2 })).body;
-      drugi.server.close();
-      assert.equal(zahtevi.length, 1);
-      assert.equal(zahtevi[0].grad, 'Subotica');
-      assert.equal(zahtevi[0].cena, 3000);
-    } finally {
-      fs.rmSync(dir, { recursive: true, force: true });
-    }
+  it('podaci ostaju sačuvani posle restarta servera', async () => {
+    const prvi = await startServer({ db: new Database(file) });
+    const token = await prvi.login('marko', 'marko123');
+    await prvi.call('POST', '/api/zahtevi', { token, body: { grad: 'Subotica', konzolaId: 4, brojDana: 3 } });
+    prvi.server.close();
+
+    const drugi = await startServer({ db: new Database(file) });
+    const token2 = await drugi.login('marko', 'marko123');
+    const zahtevi = (await drugi.call('GET', '/api/zahtevi', { token: token2 })).body;
+    drugi.server.close();
+    assert.equal(zahtevi.length, 1);
+    assert.equal(zahtevi[0].grad, 'Subotica');
+    assert.equal(zahtevi[0].cena, 3000);
+  });
+
+  it('neuspeo upis na disk ne menja podatke u memoriji', async (t) => {
+    const s = await startServer({ db: new Database(file) });
+    t.after(() => s.server.close());
+    const marko = await s.login('marko', 'marko123');
+    const admin = await s.login('admin', 'admin123');
+    await s.call('POST', '/api/zahtevi', { token: marko, body: { grad: 'Niš', konzolaId: 1, brojDana: 1 } });
+
+    fs.mkdirSync(`${file}.tmp`); // svaki sledeći upis pada (EISDIR)
+    t.mock.method(console, 'error', () => {});
+    const novi = await s.call('POST', '/api/zahtevi', { token: marko, body: { grad: 'Niš', konzolaId: 2, brojDana: 1 } });
+    assert.equal(novi.status, 500);
+    const odobri = await s.call('PATCH', '/api/admin/zahtevi/1', { token: admin, body: { status: 'ODOBREN' } });
+    assert.equal(odobri.status, 500);
+    const cena = await s.call('PUT', '/api/admin/konzole/1', { token: admin, body: { cenaPoDanu: 5 } });
+    assert.equal(cena.status, 500);
+
+    const zahtevi = (await s.call('GET', '/api/zahtevi', { token: marko })).body;
+    assert.deepEqual(zahtevi.map((z) => [z.id, z.status]), [[1, 'NA_CEKANJU']]);
+    assert.equal((await s.call('GET', '/api/konzole', { token: marko })).body[0].cenaPoDanu, 1500);
+
+    fs.rmdirSync(`${file}.tmp`);
+    const ponovo = await s.call('POST', '/api/zahtevi', { token: marko, body: { grad: 'Niš', konzolaId: 2, brojDana: 1 } });
+    assert.equal(ponovo.body.id, 2);
+  });
+
+  it('oštećen fajl baze daje jasnu poruku', () => {
+    fs.writeFileSync(file, '{"korisnici": [');
+    assert.throws(() => new Database(file), /nije ispravan JSON.*obrišite/);
   });
 });

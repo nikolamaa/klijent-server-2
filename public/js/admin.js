@@ -12,17 +12,19 @@
   const cenovnikMessage = document.getElementById('cenovnik-message');
 
   let zahtevi = [];
+  let poslednjiOdgovor = '';
   let aktivniFilter = 'NA_CEKANJU';
+  let odlukaUToku = false;
 
   let korisnik;
   try {
     korisnik = await Api.requireRole('admin');
   } catch (err) {
-    showMessage(pageError, err.message);
+    showMessage(pageError, `${err.message} Osvežite stranicu kada server bude dostupan.`);
     return;
   }
   if (!korisnik) return;
-  setupHeader(korisnik);
+  showUserName(korisnik);
 
   function setMessage(node, text, tip) {
     node.classList.toggle('success', tip === 'success');
@@ -43,37 +45,53 @@
     if (z.status !== 'NA_CEKANJU') {
       return el('span', { class: 'muted' }, `Obrađen ${Format.datum(z.obradjen)}`);
     }
+    const opis = `zahtev #${z.id}${z.klijent ? ` (${z.klijent.imePrezime})` : ''}`;
     return el('div', { class: 'actions' },
-      el('button', { type: 'button', class: 'approve', onclick: () => decide(z, 'ODOBREN') }, 'Odobri'),
-      el('button', { type: 'button', class: 'reject', onclick: () => decide(z, 'ODBIJEN') }, 'Odbij'),
+      el('button', {
+        type: 'button', class: 'approve', disabled: odlukaUToku,
+        'aria-label': `Odobri ${opis}`, onclick: () => decide(z, 'ODOBREN'),
+      }, 'Odobri'),
+      el('button', {
+        type: 'button', class: 'reject', disabled: odlukaUToku,
+        'aria-label': `Odbij ${opis}`, onclick: () => decide(z, 'ODBIJEN'),
+      }, 'Odbij'),
     );
   }
 
   function renderRequests() {
     const prikazani = aktivniFilter ? zahtevi.filter((z) => z.status === aktivniFilter) : zahtevi;
     tbody.replaceChildren(...prikazani.map((z) => el('tr', {},
-      el('td', {}, z.id),
-      el('td', {}, z.klijent ? `${z.klijent.imePrezime} (${z.klijent.korisnickoIme})` : '—'),
-      el('td', {}, z.grad),
-      el('td', {}, z.nazivKonzole),
-      el('td', {}, Format.dana(z.brojDana)),
-      el('td', { class: 'num' }, Format.cena(z.cena)),
-      el('td', {}, Format.datum(z.kreiran)),
-      el('td', {}, statusBadge(z.status)),
-      el('td', {}, actionButtons(z)),
+      el('td', { 'data-label': '#' }, z.id),
+      el('td', { 'data-label': 'Klijent' }, z.klijent
+        ? el('span', {}, z.klijent.imePrezime, el('span', { class: 'muted' }, ` (${z.klijent.korisnickoIme})`))
+        : '—'),
+      el('td', { 'data-label': 'Grad' }, z.grad),
+      el('td', { 'data-label': 'Konzola' }, z.nazivKonzole),
+      el('td', { 'data-label': 'Broj dana' }, Format.dana(z.brojDana)),
+      el('td', { 'data-label': 'Cena', class: 'num' }, Format.cena(z.cena)),
+      el('td', { 'data-label': 'Poslat' }, Format.datum(z.kreiran)),
+      el('td', { 'data-label': 'Status' }, statusBadge(z.status)),
+      el('td', { 'data-label': 'Akcije' }, actionButtons(z)),
     )));
     emptyNote.hidden = prikazani.length > 0;
     renderCounts();
   }
 
-  async function loadRequests() {
-    zahtevi = await Api.get('/api/admin/zahtevi');
+  // Tabela se ponovo iscrtava samo kada se podaci promene, da se ne izgubi
+  // fokus tastature pri automatskom osvežavanju.
+  async function loadRequests({ force = false } = {}) {
+    const novi = await Api.get('/api/admin/zahtevi');
+    const odgovor = JSON.stringify(novi);
+    if (!force && odgovor === poslednjiOdgovor) return;
+    poslednjiOdgovor = odgovor;
+    zahtevi = novi;
     renderRequests();
   }
 
   async function decide(zahtev, status) {
     const akcija = status === 'ODOBREN' ? 'odobren' : 'odbijen';
-    for (const button of tbody.querySelectorAll('button')) button.disabled = true;
+    odlukaUToku = true;
+    renderRequests();
     try {
       await Api.patch(`/api/admin/zahtevi/${zahtev.id}`, { status });
       setMessage(actionMessage,
@@ -82,7 +100,9 @@
     } catch (err) {
       setMessage(actionMessage, err.message, 'error');
     }
-    await refresh();
+    odlukaUToku = false;
+    await refresh({ force: true });
+    actionMessage.focus();
   }
 
   for (const button of filterButtons) {
@@ -101,7 +121,9 @@
         type: 'number', min: '1', step: '1', value: k.cenaPoDanu,
         'aria-label': `Cena po danu za ${k.naziv}`,
       });
-      const save = el('button', { type: 'button', class: 'secondary' }, 'Sačuvaj');
+      const save = el('button', {
+        type: 'button', class: 'secondary', 'aria-label': `Sačuvaj cenu za ${k.naziv}`,
+      }, 'Sačuvaj');
       save.addEventListener('click', () => savePrice(k, input, save));
       return el('tr', {}, el('td', {}, k.naziv), el('td', {}, input), el('td', {}, save));
     }));
@@ -134,16 +156,21 @@
 
   // ---------- osvežavanje ----------
 
-  async function refresh() {
+  async function refresh({ force = false } = {}) {
     try {
-      await loadRequests();
+      await Promise.all([
+        loadRequests({ force }),
+        // Cenovnik se ponovo učitava samo ako nije učitan pri otvaranju stranice,
+        // da se ne izgube izmene cena koje admin upravo kuca.
+        konzoleBody.children.length === 0 ? loadConsoles() : null,
+      ]);
       showMessage(pageError, '');
     } catch (err) {
       showMessage(pageError, err.message);
     }
   }
 
-  document.getElementById('refresh').addEventListener('click', refresh);
+  document.getElementById('refresh').addEventListener('click', () => refresh());
 
   try {
     await Promise.all([loadRequests(), loadConsoles()]);

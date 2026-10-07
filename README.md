@@ -7,8 +7,10 @@ Klijent-server aplikacija za iznajmljivanje igračkih konzola.
   (cena po danu × broj dana) i automatski se računa pri izboru konzole i broja dana.
   Poslati zahtev dobija status *Na čekanju*.
 - **Admin** se prijavi na istoj login formi, vidi sve zahteve klijenata i
-  **odobrava** ili **odbija** ih. Klijent odmah vidi novi status u tabeli „Moji zahtevi”.
-  Admin može da menja i cenovnik konzola (nova cena važi za nove zahteve).
+  **odobrava** ili **odbija** ih. Klijent vidi novi status u tabeli „Moji zahtevi”
+  (tabela se osvežava automatski na svakih 15 sekundi, a odmah klikom na „Osveži”).
+  Admin može da menja i cenovnik konzola (nova cena važi za nove zahteve; ako se cena
+  promeni dok klijent popunjava formu, server odbija zahtev i forma prikazuje novu cenu).
 
 ## Pokretanje
 
@@ -72,7 +74,7 @@ Svi zahtevi osim prijave šalju zaglavlje `Authorization: Bearer <token>`.
 | GET   | `/api/korisnik` | bilo koja | trenutno prijavljeni korisnik |
 | GET   | `/api/gradovi` | bilo koja | lista gradova |
 | GET   | `/api/konzole` | bilo koja | konzole sa cenom po danu |
-| POST  | `/api/zahtevi` | klijent | `{ grad, konzolaId, brojDana }` → novi zahtev; cenu računa server |
+| POST  | `/api/zahtevi` | klijent | `{ grad, konzolaId, brojDana, ocekivanaCenaPoDanu? }` → novi zahtev; cenu računa server, a ako se `ocekivanaCenaPoDanu` razlikuje od trenutne cene vraća 409 |
 | GET   | `/api/zahtevi` | klijent | zahtevi prijavljenog klijenta |
 | GET   | `/api/admin/zahtevi?status=` | admin | svi zahtevi (opciono filter: `NA_CEKANJU`, `ODOBREN`, `ODBIJEN`) |
 | PATCH | `/api/admin/zahtevi/:id` | admin | `{ status: "ODOBREN" \| "ODBIJEN" }` — samo za zahteve na čekanju |

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="sr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prijava — Iznajmljivanje konzola</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="login-page">
+  <main class="card login-card">
+    <h1>Iznajmljivanje konzola</h1>
+    <p class="muted">Prijavite se da biste nastavili.</p>
+
+    <form id="login-form" novalidate>
+      <label>
+        Korisničko ime
+        <input id="korisnicko-ime" name="korisnickoIme" autocomplete="username" required autofocus>
+      </label>
+      <label>
+        Lozinka
+        <input id="lozinka" name="lozinka" type="password" autocomplete="current-password" required>
+      </label>
+      <p id="login-error" class="message error" role="alert" hidden></p>
+      <button type="submit">Prijavi se</button>
+    </form>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/login.js"></script>
+</body>
+</html>

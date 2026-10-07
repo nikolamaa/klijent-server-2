@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="sr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Iznajmljivanje konzole</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <span class="brand">Iznajmljivanje konzola</span>
+    <span class="user">
+      <span id="user-name"></span>
+      <button id="logout" type="button" class="secondary">Odjavi se</button>
+    </span>
+  </header>
+
+  <main class="container">
+    <p id="page-error" class="message error" role="alert" hidden></p>
+
+    <section class="card">
+      <h2>Novi zahtev za iznajmljivanje</h2>
+      <form id="rent-form" class="rent-form" novalidate>
+        <label>
+          Grad
+          <select id="grad" name="grad" required>
+            <option value="">— izaberite grad —</option>
+          </select>
+        </label>
+        <label>
+          Tip konzole
+          <select id="konzola" name="konzolaId" required>
+            <option value="">— izaberite konzolu —</option>
+          </select>
+        </label>
+        <label>
+          Broj dana
+          <input id="broj-dana" name="brojDana" type="number" min="1" max="30" step="1" value="1" required>
+        </label>
+        <label>
+          Cena
+          <input id="cena" name="cena" type="text" readonly tabindex="-1" value="—" aria-describedby="cena-detalji">
+          <small id="cena-detalji" class="hint" aria-live="polite">Cena zavisi od izabrane konzole.</small>
+        </label>
+
+        <p id="rent-error" class="message error" role="alert" hidden></p>
+        <p id="rent-success" class="message success" role="status" hidden></p>
+        <button type="submit" class="wide">Pošalji zahtev</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <h2>Moji zahtevi</h2>
+        <button id="refresh" type="button" class="secondary">Osveži</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Grad</th>
+              <th>Konzola</th>
+              <th>Broj dana</th>
+              <th>Cena</th>
+              <th>Poslat</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="zahtevi-body"></tbody>
+        </table>
+      </div>
+      <p id="zahtevi-empty" class="muted" hidden>Još niste poslali nijedan zahtev.</p>
+    </section>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/klijent.js"></script>
+</body>
+</html>

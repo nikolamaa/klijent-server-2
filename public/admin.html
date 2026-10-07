@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="sr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin — Iznajmljivanje konzola</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <span class="brand">Iznajmljivanje konzola <span class="tag">admin</span></span>
+    <span class="user">
+      <span id="user-name"></span>
+      <button id="logout" type="button" class="secondary">Odjavi se</button>
+    </span>
+  </header>
+
+  <main class="container">
+    <p id="page-error" class="message error" role="alert" hidden></p>
+
+    <section class="card">
+      <div class="section-head">
+        <h2>Zahtevi klijenata</h2>
+        <button id="refresh" type="button" class="secondary">Osveži</button>
+      </div>
+
+      <div class="filters" role="group" aria-label="Filter po statusu">
+        <button type="button" class="filter" data-status="NA_CEKANJU" aria-pressed="true">
+          Na čekanju <span class="count" data-count="NA_CEKANJU">0</span>
+        </button>
+        <button type="button" class="filter" data-status="ODOBREN" aria-pressed="false">
+          Odobreni <span class="count" data-count="ODOBREN">0</span>
+        </button>
+        <button type="button" class="filter" data-status="ODBIJEN" aria-pressed="false">
+          Odbijeni <span class="count" data-count="ODBIJEN">0</span>
+        </button>
+        <button type="button" class="filter" data-status="" aria-pressed="false">
+          Svi <span class="count" data-count="">0</span>
+        </button>
+      </div>
+
+      <p id="action-message" class="message" role="status" hidden></p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Klijent</th>
+              <th>Grad</th>
+              <th>Konzola</th>
+              <th>Broj dana</th>
+              <th>Cena</th>
+              <th>Poslat</th>
+              <th>Status</th>
+              <th>Akcije</th>
+            </tr>
+          </thead>
+          <tbody id="zahtevi-body"></tbody>
+        </table>
+      </div>
+      <p id="zahtevi-empty" class="muted" hidden>Nema zahteva za izabrani filter.</p>
+    </section>
+
+    <section class="card">
+      <h2>Cenovnik konzola</h2>
+      <p class="muted">Cena po danu se primenjuje na nove zahteve. Već poslati zahtevi zadržavaju cenu iz trenutka slanja.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Konzola</th>
+              <th>Cena po danu (din)</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="konzole-body"></tbody>
+        </table>
+      </div>
+      <p id="cenovnik-message" class="message" role="status" hidden></p>
+    </section>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>
